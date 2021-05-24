@@ -14,6 +14,7 @@
 #' @param alpha ratio between \code{L_1} and Laplacian for \code{Net}. Default is \code{alpha = 0.5}.
 #' @param Omega adjacency matrix with zero diagonal and non-negative off-diagonal used to calculate Laplacian matrix.
 #' @param nfolds number of cross-validation performed for tuning optimal parameters over runs. Default is \code{nfolds = 5}.
+#' @param plot plot the cross-validation curve as a function of the lambda values used.
 #'
 #' @return The following objects are returned:
 #' \item{beta}{a sparse Matrix of coefficients, stored in class\code{dgCMatrix}.}
@@ -23,7 +24,7 @@
 #' \item{p.value}{\eqn{p}-value resulting from the log-rank test (the significance level is \eqn{p}-value < 0.05).}
 #' \item{plots}{survival curves and distribution plot of prognostic index \eqn{PI^{T}}.}
 #' @export
-CosmonetTraining <- function(k,x,y,screenVars,family="Cox",penalty="Net",Omega,alpha=0.5,nfolds=5){
+CosmonetTraining <- function(k,x,y,screenVars,family="Cox",penalty="Net",Omega,alpha=0.5,nfolds=5,plot=TRUE){
   
   if(is.list(screenVars)==TRUE){
   index <- match(unlist(screenVars),colnames(x))
@@ -36,7 +37,7 @@ CosmonetTraining <- function(k,x,y,screenVars,family="Cox",penalty="Net",Omega,a
   
   if(family=="Cox"){
     fitTrain <- switch(penalty,
-                       "Net"=NetworkCox(k,x[,indexScreen],y,Omega[indexScreen,indexScreen],alpha,nfolds))
+                       "Net"=NetworkCox(k,x[,indexScreen],y,Omega[indexScreen,indexScreen],alpha,nfolds,plot))
     fitTrain$family <- "cox"
   }
   
@@ -64,7 +65,7 @@ Lambdas <- function(x,y,Omega=Omega,alpha=alpha,nfolds=nfolds){
   return(data.table(cvm=cv$fit$cvm, lambda=cv$fit$lambda))
 }
 
-OptimLambda <- function(k, ...){
+OptimLambda <- function(k, plot=FALSE, ...){
   # Returns optimal lambda for APML0.
   #
   # Args:
@@ -77,17 +78,26 @@ OptimLambda <- function(k, ...){
   require(plyr)
   MSEs <- data.frame(rbind.fill(mclapply(seq(k), function(dummy) Lambdas(...))))
   res <- ddply(MSEs, .(lambda), summarise, mean=mean(cvm))
+  
+  if(plot){ 
+    # Plot Cross-validation curve
+    x <- log(as.matrix(res$lambda))
+    y <- as.matrix(res$mean)
+    plot(x,y,"p",xlab = "Log(lambda)",ylab ="cvm",col = "red", pch = 20)
+    abline(v=log(res[order(res$mean),][1,1]), col="black",lwd=3, lty=2)
+  }
+  
   return(res[order(res$mean),][1,1])
 }
 
-NetworkCox <- function(k,x,y,Omega=Omega,alpha=alpha,nfolds=nfolds){
+NetworkCox <- function(k,x,y,Omega=Omega,alpha=alpha,nfolds=nfolds,plot=TRUE){
   
   require(APML0)
   set.seed(1234)
   count <- 0
   colnames(y) <- c("time","status")
   # Returns optimal lambda for APML0.
-  opt.lambda <- OptimLambda(k,x,y,Omega,alpha,nfolds)
+  opt.lambda <- OptimLambda(k,x,y,Omega,alpha,nfolds,plot)
   # Fit optimal model
   fit <- APML0(as.matrix(x),as.matrix(y),family="cox",penalty="Net",Omega=Omega,lambda=opt.lambda,alpha)
   beta <- as.matrix(fit$Beta)
