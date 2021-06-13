@@ -149,7 +149,9 @@ To investigate the datasets, we first load the data in an R session and then, we
 
 ## Survival information: RFS - time (months) and status (alive=0 or death=1)
 # y1 <- SurvTrainingData[,-1]
+# rownames(y1) <- SurvTrainingData$sample
 # y2  <- SurvTestingData[,-1]
+# rownames(y2) <- SurvTestingData$sample
 
 ### Median of survival time and censoring proportion
 # median(y1$time)
@@ -177,17 +179,18 @@ knitr::include_graphics("fig2.jpg")
 
 ### Functional Linkage Matrix and Co-Expression Matrix {.unnumbered}
 
-To incorporate the *a-priori biological information* in the penalized regression model, we need to build the network matrix, i.e., a weighted and undirected graph. This network generally describes relation among molecules, such as protein-protein interaction, gene co-expression, functional similarities, regulatory relations or biochemical reactions. In our analysis to construct the molecular network we used`CreateNetworkMatrix()` function (Figure 1, step ${\bf (c)}$) which implements the following steps:
+To incorporate the *a-priori biological information* in the penalized regression model, we first need to build the network matrix, i.e., a weighted and undirected graph where each element represents the probability of how strong is the relationship between two adjacent genes. This network generally describes relation among molecules, such as protein-protein interaction, gene co-expression, functional similarities, regulatory relations or biochemical reactions. 
+In our analysis to construct the molecular network we used`CreateNetworkMatrix()` function which implements the following steps:
 
-1. we consider the associated disease-genes, generally collected by the users, in order to have a gene subset of cardinality $|\mathcal{I}|=d\leq p$;
-2. we create the *Functional Linkage Matrix*, $FL=(F_{ij})_{(i,j) \in \mathcal{I}}$. This matrix is a probability matrix where each element represents how strong is the relationship between two adjacent genes;
-3. we complete the network matrix by adding zero weights for all the genes that have no apparently association with the disease in order to obtain a $p \times p$ matrix. We called this matrix *Omega*.
+1. the associated disease-genes (generally collected by the user) are explored in order to identify a subset of genes with cardinality $|\mathcal{I}|=d\leq p$;
+2. the *Functional Linkage Matrix* $FL=(F_{ij})_{(i,j) \in \mathcal{I}}$ is build by using the genes selected in step (1);
+3. the network matrix is completed by adding zero weights for all the genes that have no apparently association with the disease, i.e. a $p \times p$ matrix. We called this matrix *Omega*.
 
 For our examples we considered a set of disease-genes covered by [HumanBase tool](https://hb.flatironinstitute.org) which contains a data-driven integrative analyses of specific cell types/tissues and human disease. 
 In particular, we first select the top 500 genes (i.e., the genes with the highest posterior probabilities) associated with cancer disease [Disease Ontology](https://disease-ontology.org) ([DOID:1612](https://disease-ontology.org/term/DOID%3A1612/) which uses biological information contained in `repositoryDisease` file. This repository is a tab-delimited text file available in our package and contains the [DOID](https://disease-ontology.org) code and the prediction score, i.e., a posterior probability, associated to each gene. The higher the probability the stronger the functional relation between the gene and the disease.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-## (c) Create the network matrix 
+## Create the network matrix 
 # load("data/tissueSpecificEdgeBreast.rda")
 # NetworkMatrix <- CreateNetworkMatrix(
 #   x1.norm,
@@ -200,11 +203,11 @@ In particular, we first select the top 500 genes (i.e., the genes with the highe
 # )
 ```
 
-A simple way of generating a *Co-Expression Matrix* is also through the *correlation*, i.e., correlating all pairs of variables (genes) in a correlation matrix. Another possibility to create the *a-priori network* is to use [`STRINGdb package`](http://www.bioconductor.org/packages/release/bioc/html/STRINGdb.html) which provides a R interface to the [STRING](http://www.string-db.org) protein-protein interactions database.
+A simple way of generating a *Co-Expression Matrix* is also through the *correlation*, i.e., correlating all pairs of variables (genes) in a correlation matrix. Another possibility to create an *a-priori network* is to use [`STRINGdb package`](http://www.bioconductor.org/packages/release/bioc/html/STRINGdb.html) which provides a R interface to the [STRING](http://www.string-db.org) protein-protein interactions database.
 
 ### Variable screenings for Cox model {.unnumbered}
 
-1. **Biomedical-Driven Screening (BMD-screening)**. In this type of screening, we identify the subset of the screened variables $\{x_j, j \in I\}$ by using only the biological information. Typically, this knowledge either derives from the literature (protein-protein interaction, pathway information, etc.) or is collected by users (for example a subset of disease-genes involved in a specific tumor). For our example, we considered as *screened genes* the top 500 genes associated with cancer disease and `ScreeningMethod()` function is applied (Figure 1, step ${\bf b}$).
+1. **Biomedical-Driven Screening (BMD-screening)**. In this type of screening, we identify the subset of the screened variables $\{x_j, j \in I\}$ by using only the biological information. Typically, this knowledge either derives from the literature (protein-protein interaction, pathway information, etc.) or is collected by users (for example a subset of disease-genes involved in a specific tumor). For our example, we considered as *screened genes* the top 500 genes associated with cancer disease obtained from the previous step. `ScreeningMethod()` function is applied (Figure 1, step ${\bf b}$).
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 ## (b) BMD-screened genes
@@ -218,27 +221,36 @@ A simple way of generating a *Co-Expression Matrix* is also through the *correla
 # )
 ```
 
-2. **Data-Driven Screening (DAD-screening)**. In this type of screening, we identify the subset of the screened variables $\{x_j, j \in I\}$ by reducing the feature space from a large scale dimension $p$ to a relatively moderate scale $d < p$ by using only information from the data. We apply `MarginalCoxRanking()` function to identify the candidate genes that are highly-correlated with the patient survival according to their corresponding Cox marginal utilities (Figure 1, step ${\bf b}$). The genes are ordered from the largest to the smallest [Zhao et al., 2012](https://www.sciencedirect.com/science/article/pii/S0047259X11001618), [Fan et al., 2010](https://projecteuclid.org/euclid.imsc/1288099013). This function returns a data frame composed by the ranking of all genes, the corresponding regression coefficients and the relative $p$-values. In order to select the optimal threshold $d$ and optimize data prediction, we can choose to rank:
-
-   a. by `regression coefficients`. We select the genes with $\vert \boldsymbol{\beta}_{\mathcal{I}} \vert > \delta_n$, where $\delta_n$ is a fixed threshold that indicates the $d$ top ranked covariates;
-   b. by `p.values`. We identify as $d'$-genes all the genes that have $p$-values $< 0.05$;
-   c. by both `regression coefficients` (a) and `p.values` (b).
-
-We define the subset of selected genes $\{x_j, j \in I\}$ as those that are highly correlated with patient survival based on the ranking selected by users (a, b or c). Here, we considered as *screened genes* the top 2500 ranking genes (`thresh`) associated with patient survival and `ScreeningMethod()` function is used (Figure 1, step ${\bf b}$).
+2. **Data-Driven Screening (DAD-screening)**. In this type of screening, we identify the subset of the screened variables $\{x_j, j \in I\}$ by reducing the feature space from a large scale dimension $p$ to a relatively moderate scale $d < p$ by using only information from the data. We apply `MarginalCoxRanking()` function to identify the candidate genes that are highly-correlated with the patient survival according to their corresponding Cox marginal utilities (Figure 1, step ${\bf b}$). The genes are ordered from the largest to the smallest [Fan et al., 2010](https://fan.princeton.edu/papers/10/IMSCOLL606-1.pdf), [Saldana and Yang, 2018](https://www.jstatsoft.org/article/view/v083i02). This function returns a data frame composed by the ranking of genes that are highly-correlated with the patient survival (`original.index` and `symbol`), the marginal regression coefficients (`marg.coeff`), the coefficients (`beta`) and the related $p$-values.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-### (b) Ranking of genes that are highly correlated with the patient survival 
+### Ranking of genes that are highly correlated with the patient survival 
 # rankingGenes <- MarginalCoxRanking(x1.norm,y1)
 # head(rankingGenes)
 # save(rankingGenes, file = "rankingGenes.RData")
 
+# par(mfrow = c(1, 2))
+# plot(rankingGenes$marg.coeff, rankingGenes$pvals, col = "blue", pch = 20)
+# abline(h=0.05, col="red",lwd=2, lty=2)
+# plot(rankingGenes$pvals, 1:diim(x1.norm)[2], col = "blue", pch = 20)
+```
+
+Then, in order to select the optimal threshold $d$ and optimize data prediction, we can choose to rank the genes:
+
+   1. by `marginal regression coefficients`. We select the genes with $\vert \boldsymbol{\beta}_{\mathcal{I}} \vert > \delta_n$, where $\delta_n$ is a fixed threshold that indicates the $d'$ top ranked covariates;
+   2. by `p.values`. We identify as $d'$-genes all the genes that have $p$-values $< 0.05$;
+   3. by both `marginal regression coefficients` (1) and `p.values` (2).
+
+We use `ScreeningMethod()` function to select as *screened genes* the top 2500 (`thresh`) genes ranked by marginal regression coefficients.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 ## (b) DAD-screeened genes (the top 2500 ranking genes)
 # screenVars.DAD <- ScreeningMethod(
 #   x1.norm,
 #   cancer.genes,
 #   screening="dad",
 #   ranking=rankingGenes,
-#   thresh=2500
+#   thresh=200
 #)
 ```
 
@@ -251,7 +263,7 @@ We define the subset of selected genes $\{x_j, j \in I\}$ as those that are high
 #   cancer.genes,
 #   screening="bmd+dad",
 #   ranking=rankingGenes,
-#   thresh=2500
+#   thresh=200
 # )
 ```
 
@@ -268,10 +280,12 @@ The selected genes are identified by a gene signature vector, i.e., $\boldsymbol
 `CosmonetTraining()` and `SelectOptimalCutoff()` functions are applied for the variable selection and the identification of the optimal cutoff $PI^{*,T}$, respectively (Figure 1, steps ${\bf (d)-(h)}$). 
   
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
+# (c) Network matrix
+# Omega <- as.matrix(NetworkMatrix$Omega) 
+
 ## (d)-(h) Fit network-regularized Cox regression model and select optimal cutoff on training set  
 
 ### BMD-screening + Network-regularized Cox model
-# Omega <- as.matrix(NetworkMatrix$Omega) 
 # fitTraining.BMD <- CosmonetTraining(
 #   10,
 #   x1.norm,
@@ -283,14 +297,24 @@ The selected genes are identified by a gene signature vector, i.e., $\boldsymbol
 #   Omega=Omega,
 #   nfolds=5
 # )
-# beta.BMD <- fitTraining$beta
+
+# Regression coefficients
+# beta.BMD <- fitTraining.BMD$beta
+# sum(beta.BMD!=0)
 # write.table(beta.BMD, "BMD_RegCoeff.txt", sep = "\t", row.names = TRUE, col.names = FALSE)
 
-# summary.BMD <- fitTraining$summary
+# Optimal lambda
+# opt.lambda <- fitTraining.BMD$opt.lambda
+
+# Data frame composed by samples, relative prognostic indices, times, status and group risk for each quantile
+# df.train.BMD <- fitTraining.BMD$df
+# head(df.train.BMD)
+
+# Summary table 
+# summary.BMD <- fitTraining.BMD$summary
 # summary.BMD
 
-# df.train.BMD <- fitTraining$df
-# head(df.train.BMD)
+#*****************************************************************************************************
 
 ### DAD-screening + Network-regularized Cox model
 # fitTraining.DAD <- CosmonetTraining(
@@ -304,14 +328,24 @@ The selected genes are identified by a gene signature vector, i.e., $\boldsymbol
 #   Omega=Omega,
 #   nfolds=5
 # )
-# beta.DAD <- fitTraining$beta
+
+# Regression coefficients
+# beta.DAD <- fitTraining.DAD$beta
+# sum(beta.BMD!=0)
 # write.table(beta.DAD, "DAD_RegCoeff.txt", sep = "\t", row.names = TRUE, col.names = FALSE)
 
-# summary.DAD <- fitTraining$summary
+# Optimal lambda
+# opt.lambda <- fitTraining.DAD$opt.lambda
+
+# Data frame composed by samples, relative prognostic indices, times, status and group risk for each quantile
+# df.train.DAD <- fitTraining.DAD$df
+# head(df.train.DAD)
+
+# Summary table 
+# summary.DAD <- fitTraining.DAD$summary
 # summary.DAD
 
-# df.train.DAD <- fitTraining$df
-# head(df.train.DAD)
+#*****************************************************************************************************
 
 ### BMD+DAD-screening + Network-regularized Cox model
 # fitTraining.BMD.DAD <- CosmonetTraining(
@@ -325,17 +359,28 @@ The selected genes are identified by a gene signature vector, i.e., $\boldsymbol
 #   Omega=Omega,
 #   nfolds=5
 # )
-# beta.BMD.DAD <- fitTraining$beta
+# beta.BMD.DAD <- fitTraining.BMD.DAD$beta
+# sum(beta.BMD.DAD!=0)
 # write.table(beta.BMD.DAD, "BMD_DAD_RegCoeff.txt", sep = "\t", row.names = TRUE, col.names = FALSE)
 
-# summary.BMD.DAD <- fitTraining$summary
-# summary.BMD.DAD
+# Regression coefficients
+# beta.DAD <- fitTraining.DAD$beta
+# sum(beta.BMD!=0)
+# write.table(beta.DAD, "DAD_RegCoeff.txt", sep = "\t", row.names = TRUE, col.names = FALSE)
 
-# df.train.BMD.DAD <- fitTraining$df
+# Optimal lambda
+# opt.lambda <- fitTraining.BMD.DAD$opt.lambda
+
+# Data frame composed by samples, relative prognostic indices, times, status and group risk for each quantile
+# df.train.BMD.DAD <- fitTraining.BMD.DAD$df
 # head(df.train.BMD.DAD)
+
+# Summary table
+# summary.BMD.DAD <- fitTraining.BMD.DAD$summary
+# summary.BMD.DAD
 ```
 
-To summarize the results the last command returns a data frame composed the percentage related to the cutoff (from 20% to 80%), the number of low- and high-risk group, the cutoff and the associated $p$-value (as result of the long-rank test).
+To summarize the results a data frame composed the percentage related to the cutoff (from 20% to 80%), the number of low- and high-risk group, the cutoff and the associated $p$-value (as result of the long-rank test) is shown.
 
 ### Survival analysis {.unnumbered}
 
@@ -355,38 +400,42 @@ Survival analysis is performed using the Kaplan Meier curves after dividing the 
 #   opt.cutoff
 # )
 
-# df.test.BMD <- fitTesting$df
+# Data frame composed by samples, relative prognostic indices, times, status and group risk
+# df.test.BMD <- fitTesting.BMD$df
 # head(df.test.BMD)
 
-# fitTesting$p.value
+#*****************************************************************************************************
 
 ### DAD-screening 
 # fitTesting.DAD <- CosmonetTesting(
 #   x2.norm,
 #   y2,
 #   screenVars.DAD,
-#   beta,
+#   beta.DAD,
 #   opt.cutoff
 # )
 
-# df.test.DAD <- fitTesting$df
+# Data frame composed by samples, relative prognostic indices, times, status and group risk
+# df.test.DAD <- fitTesting.DAD$df
 # head(df.test.DAD)
 
 # fitTesting$p.value
+
+#*****************************************************************************************************
 
 ### BMD+DAD-screening 
 # fitTesting.BMD.DAD <- CosmonetTesting(
 #   x2.norm,
 #   y2,
 #   screenVars.BMD.DAD,
-#   beta,
+#   beta.BMD.DAD,
 #   opt.cutoff
 # )
 
-# df.test.BMD.DAD <- fitTesting$df
+# Data frame composed by samples, relative prognostic indices, times, status and group risk
+# df.test.BMD.DAD <- fitTesting.BMD.DAD$df
 # head(df.test.BMD.DAD)
 
-# fitTesting$p.value
 ```
 
 ```{r echo=FALSE, out.width = '80%', fig.cap='Figure 3', fig.align="center"}
