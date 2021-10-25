@@ -16,20 +16,20 @@ install.packages("devtools")
 devtools::install_github("cosmonet-package/COSMONET", repos=BiocManager::repositories())
 ````
 
-Note. Execute the following steps:
-
-1. Open Terminal
-2. Write or paste in: ````defaults write org.R-project.R force.LANG en_US.UTF-8````
-3. Close Terminal (including any RStudio window)
-4. Start R
-
-if R gives the below message when you install the R packages:
+Note. If R gives the below messages: 
 
 ````
 Error: (converted from warning) Setting LC_CTYPE failed, using "C"
 Execution halted
 Error in ...
 ````
+
+when you install the R packages, it is necessary to execute the following steps:
+
+1. Open Terminal
+2. Write or paste in: ````defaults write org.R-project.R force.LANG en_US.UTF-8````
+3. Close Terminal (including any RStudio window)
+4. Start R
 
 ### To get started
 
