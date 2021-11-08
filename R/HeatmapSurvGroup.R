@@ -67,7 +67,7 @@ HeatmapSurvGroup <- function(x1, x2, screenVars, beta, PI.train, opt.cutoff, PI.
   heatmap.train <- pheatmap(zscore.train, color = colorRampPalette(c("green", "black", "red"))(100), cluster_row = TRUE, cluster_cols = FALSE,
                                      gaps_col = s.train, annotation_col = HL.group.train, cutree_col = 2,
                                      annotation_colors = my_colour,
-                                     show_colnames = F, fontsize = 6.5, fontsize_row=5)
+                                     show_colnames = F, fontsize = 6.5, fontsize_row=5, silent = TRUE)
 
   clust.genes <- heatmap.train$tree_row[["order"]]
   coeff.non.zero <- beta[ind.non.zero1,]
@@ -107,7 +107,7 @@ HeatmapSurvGroup <- function(x1, x2, screenVars, beta, PI.train, opt.cutoff, PI.
   heatmap.test <- pheatmap(zscore.test+1, color = colorRampPalette(c("green", "black", "red"))(100), cluster_row = FALSE, cluster_cols = FALSE,
                                     gaps_col = s.test, annotation_col = HL.group.test, cutree_col = 2,
                                     annotation_colors = my_colour,
-                                    show_colnames = F, fontsize = 6.5, fontsize_row=5)
+                                    show_colnames = F, fontsize = 6.5, fontsize_row=5, silent = TRUE)
   
   # h <- ggpubr::ggarrange(heatmap.train[[4]], heatmap.test[[4]], ncol = 2, nrow = 1)
   # print(h)

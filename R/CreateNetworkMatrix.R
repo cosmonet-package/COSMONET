@@ -17,7 +17,7 @@
 #' \item{DiseaseGenes}{top cancer-disease genes and relative posterior probabilities.}
 #' \item{Omega}{network matrix with zero diagonal and non-negative off-diagonal \code{pxp}.}
 #' @export
-CreateNetworkMatrix <- function(x,repositoryDisease, diseaseID=NULL, topGenes=NULL, tissueSpecificEdge, output = TRUE, message = TRUE){
+CreateNetworkMatrix <- function(x, repositoryDisease, diseaseID=NULL, topGenes=NULL, tissueSpecificEdge, output = TRUE, message = TRUE){
   
   DiseaseGenes <- DiseaseGenesSelection(repositoryDisease, diseaseID, topGenes)
   DiseaseGenesEntrezID <- as.character(DiseaseGenes[,1])

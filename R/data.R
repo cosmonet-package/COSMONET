@@ -17,8 +17,8 @@
 #' @examples
 #' data(repositoryDisease)
 NULL
-#' @name KEGG pathways
-#' @title KEGG pathways
+#' @name KEGG repository
+#' @title KEGG repository
 #'
 #' @description A data frame contains pathway maps representing the a-priori biological knowledge including molecular interaction, reaction and networks relations (KEGG, PPI, etc).
 #'

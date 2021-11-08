@@ -1,38 +1,38 @@
-##' @title Generate a three-colour network to investigate genes selected by the network-based Cox model
+#' @title Generate a gene-network to perform a KEGG pathway analysis on the genes selected by the Cox-network based model
 #'
-#' @description This function creates a three-colour network using a list of genes as input (.txt file).
-#' Different node colors are used to show a correlation measure between the genes and the disease under investigation as follows:
-#' Orange nodes represent the genes that are reported by the Functional Map of the Human Genome (Huttenhower, et. al 2008) as strongly correlated to the analysed cancer (p-value <= 0.05);
-#' Green nodes represent the genes that are reported by the Functional Map of the Human Genome as weakly correlated to the analysed cancer (p-value > 0.05);
-#' Purple nodes represent the genes that are not explored by the Functional Map of the Human Genome.
-#' @param ListOfGenes input list of genes.
+#' @description This function creates an interactive dashboard with two tabs.
+#' The first tab "Not-Isolated Genes" shows a three-colour networks of the not-isolated genes, i.e. the genes sharing 
+#' at least one KEGG pathway.
+#' The second tab "Full Network" shows a three-colour networks of all the genes selected by the method (all the not zero signatures).
+#' Different node colors are used to show a probability measure between the genes and the disease under investigation as follows:
+# 'Red color is used for the top 500 tissue-specific genes according to the HumanBase tool (https://hb.flatironinstitute.org)  (mapped up genes),
+#' Blue color is used for the bottom 501 tissue-specific genes (mapped down genes), 
+#' White color is used for genes that are not listed as tissue-specific in the HumanBase database (not mapped genes). 
+#' @param ListOfGenes a two-column data frame composed by gene names and beta coefficients
 #' @param ListHeader true if the genes' list has a header, false otherwise
-#' @param outputFile file name for the output network file
-#' @param userWidth the width of the graphics region in inches. 
-#' @param userHeight the height of the graphics region in inches. 
-#' @param includeLegend if TRUE the legend will be included in the same pdf file, otherwise a new pdf file with the legend will be generated
-#' to run this file: GenerateNetwork()
+#' @param diseaseID the disease ID identified by Disease Ontology (DO) (https://disease-ontology.org)
+#' @param nodesCol the colours of the nodes. Default values are orange, greeen and purple for mapped-up, mapped down and not mapped genes, respectively.
+#' 
+#' @return Create KEGG network and open the dashboard on the browser.
 #' @export
-GenerateNetwork <- function(ListOfGenes=listOfGenes, ListHeader = TRUE, outputFile = "NetworkFile.pdf", userWidth = 12, userHeight = 6, includeLegend = TRUE){
+GenerateNetwork <- function(ListOfGenes = NULL, header = TRUE, diseaseID = NULL, nodesCols = c('#EFCFD4','#D9E3FC','#FFFFFF')){
+  
+  # source("SupportingFunctionsGenerateNetwork.R")
+  ## call rmarkdown from script with parameters
+  # rmarkdown::render("Network_Dashboard/RUNCosmonetDashboard.Rmd", params = list(inputFile = ListOfGenes, #list of genes and beta
+  #                                                                               headerFile = header,# does the list have the header?
+  #                                                                               diseaseID = diseaseID, # disease ID 
+  #                                                                               nodesColours = nodesCols)) #Nodes Colours
+  ## open the dashboard on the browser
+  # browseURL("Network_Dashboard/RUNCosmonetDashboard.html")   
+  
+  rmarkdown::render("RUNCosmonetDashboard.Rmd", params = list(inputFile = ListOfGenes,                     # two-column file with gene names and beta coefficients
+                                                              headerFile = header,       # does the list have the header?
+                                                              diseaseID = diseaseID,     # disease ID 
+                                                              nodesColours = nodesCols)) # Nodes Colours
+  # open the dashboard on the browser
+  browseURL("RUNCosmonetDashboard.html")   
+  
+  
+}
 
-genes_Pathways_matrix <- from_data_to_pathways(ListOfGenes, ListHeader)
-network <- create_network(genes_Pathways_matrix$connected_genes, genes_Pathways_matrix$tot_paths, repos$gname, repos$gvalue)
-
-pdf(file = outputFile, width=userWidth, height = userHeight)
-par(mfrow=c(1,2))
-plot_network(network)
-if(includeLegend){
-  plot_legend(network$legend)
-  dev.off()
-  print(sprintf("The network has been saved in the file %s", outputFile));
-}
-else{
-  #close connection to NetworkFile.pdf
-  dev.off()
-  #create a separate LegendFile
-  pdf(file = "NetworkLegend.pdf")
-  plot_legend(network$legend)
-  dev.off()
-  print("The legend of the Network has been saved in the file %s NetworkLegend.pdf");
-}
-}

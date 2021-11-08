@@ -1,0 +1,161 @@
+---
+title: "COSMONET - NETWORK"
+output: 
+    flexdashboard::flex_dashboard:
+        orientation: rows
+params:
+    inputFile: 
+      value: x  # add here the path to two-column file with gene names and beta coefficients
+    headerFile: FALSE #does the list have the header?
+    diseaseID: 
+      value: x # identified using Disease Ontology (https://disease464ontology.org): DOIS:1324 for lung DOID:1612 for breast
+    nodesColours: ['#EFCFD4','#D9E3FC','#FFFFFF'] # top 500, bottom 500, not in the list, light pink, light blue, white
+---
+
+```{r, echo=FALSE,results='hide'}
+# write.table(beta.bmd, file="BMD_GEO.txt", col.names = FALSE) # https://www.schemecolor.com/blue-green-red-pastels.php 
+# required visNetwork, flexdashboard, igraph, graph from bioconductor, randomcolorR
+# load functions to generate the network
+source("../R/SupportingFunctionsGenerateNetwork.R")
+
+# load the data
+ListOfGenes <- params$inputFile
+# Does your list of Genes has Headers? True or False. 
+ListHeader <-  params$headerFile; # TRUE;
+# disease ID 
+diseaseID <- params$diseaseID; 
+# node colours
+genesColours <- params$nodesColours # c('#ffd9b3', '#d7fcb5', '#e4b5fc')
+# select the genes corresponding to non-zero beta
+non_zero_genes <- select_non_zero_genes(ListOfGenes, ListHeader)
+# retrieve KEGG Information on the selected genes
+genes_Pathways_matrix <- from_data_to_pathways(non_zero_genes, ListHeader)
+# create network
+network <- create_network(genes_Pathways_matrix$connected_genes, genes_Pathways_matrix$tot_paths, repos$gname, repos$gvalue)
+g <- network$network
+# set genes names
+genes <- V(g)$name
+if(length(V(g)$name)!=0){
+  # set nodes colour
+n_formatting <- define_node_colour(genes, repositoryDisease, diseaseID, genesColours)
+n_colours <- n_formatting$n_colours
+n_borders <- n_formatting$n_borders
+
+shapes <- rep("ellipse", length(genes))
+# Define Nodes properties
+compg.nodes <- as.data.frame(list(genes,genes, n_colours, shapes, n_colours,n_borders ))
+colnames(compg.nodes)<-c("id", "label", "color.background", "shape", "color.highlight.background", "color.border")
+
+# define edges properties
+compg.edges <- as.data.frame(get.edgelist(g))
+compg.edges[,3:4] <- c(network$edge_number, network$edge_colour)
+compg.edges[,5] <- network$edge_path
+colnames(compg.edges) <- c("from", "to", "label", "color", "title")
+}
+```
+
+Not-Isolated Genes {data-icon="fa-table"}
+===================================== 
+
+
+Row 
+-------------------------------------
+
+### KEGG Network
+
+```{r, echo=FALSE}
+if(length(V(g)$name)!=0){
+  # Visualise Nodes Legend
+  legendNodes <- data.frame(id = 1:3, label = c("Mapped Up", "Mapped Down", "Not Mapped"), color = params$nodesColours, color.border =   c("#FFFFFF", "#FFFFFF","#FFFFFF"), shape = c("ellipse","ellipse","ellipse"))
+  # list legend nodes
+  listLegendNodes <- list(
+  list(label = "Mapped Up", shape = "ellipse",
+       color = list(background = params$nodesColours[1], border = "#FFFFFF")),
+       #shapeProperties = list(borderDashes = list(8, 5))),
+  list(label = "Mapped Down", shape = "ellipse",
+       color = list(background = params$nodesColours[2], border = "#FFFFFF")),
+  list(label = "Not Mapped", shape = "ellipse",
+       color = list(background = params$nodesColours[3], border = "#dfe5f0"))
+  )
+
+  # Visualise Network
+  visNetwork(compg.nodes, compg.edges)%>%
+  visNodes(physics = FALSE, font=list(size=20), size = 30) %>%
+  visIgraphLayout(layout = "layout_in_circle") %>%
+  visEdges(smooth = list(enabled = T, type = 'dynamic', physics = FALSE), font = list(size=18, color = network$edge_colours)) %>%
+  visLegend(useGroups = F, addNodes = listLegendNodes, width = 0.2, stepY = 50) %>%
+  visPhysics(solver = "barnesHut",
+            barnesHut = list(springConstant = 0.04)) %>%#0.002
+  visExport(type = "pdf", name = "Partial-Network")
+} else {
+  print(sprintf("COSMONET has identified %d genes, but they do not share any KEGG pathways.", dim(non_zero_genes)[1]));
+  print("Please check the other tab to see the Full Network of isolated genes")
+}
+```
+
+### Legend {data-width=300, data-padding=0}
+```{r, echo=FALSE, message=FALSE, out.width = '100%', fig.height=10, fig.width=8}
+if(length(V(g)$name)!=0){
+plot_legend(network$legend)
+# save network$legend as R file to modify it and add it to the final image for publications
+legend <- network$legend
+save(legend, file="legend.RData")
+}
+```
+
+
+
+Full Network {data-icon="fa-th"}
+=====================================     
+
+### All Genes
+    
+```{r, echo=FALSE, message=FALSE}
+#load full list of genes
+genes <- non_zero_genes[,1]
+# find the new isolated genes to be added to the network
+if(length(V(g)$name)==0){
+  isolatedGenes <- genes
+} else{
+  isolatedGenes <- genes[-match(V(g)$name, genes)]
+}
+# set nodes colour
+n_formatting <- define_node_colour(genes, repositoryDisease, diseaseID, genesColours)
+n_colours <- n_formatting$n_colours
+n_borders <- n_formatting$n_borders
+shapes <- rep("ellipse", length(genes))
+
+  listLegendNodes <- list(
+  list(label = "Mapped Up", shape = "ellipse", 
+       color = list(background = params$nodesColours[1], border = "#FFFFFF")),
+       #shapeProperties = list(borderDashes = list(8, 5))),
+  list(label = "Mapped Down", shape = "ellipse", 
+       color = list(background = params$nodesColours[2], border = "#FFFFFF")),
+  list(label = "Not Mapped", shape = "ellipse", 
+       color = list(background = params$nodesColours[3], border = "#dfe5f0"))
+  )
+
+# Define Nodes
+Nodes <- as.data.frame(list(genes,genes, n_colours, shapes, n_colours, n_borders))
+colnames(Nodes)<-c("id", "label", "color.background", "shape", "color.highlight.background", "color.border")
+# }
+# set nodes legend
+nodesLegend <- data.frame(id = 1:3, label = c("Mapped Up", "Mapped Down", "Not Mapped"), color = params$nodesColours, shape = c("ellipse","ellipse","ellipse"), color.border = c("#FFFFFF", "#FFFFFF","#e6e4df")) # no border and grey
+
+if(length(V(g)$name)==0){
+  dummyEdge <- data.frame(isolatedGenes[1],isolatedGenes[2], "#FFFFFF", "NULL")
+  colnames(dummyEdge) <- c("from", "to", "color", "title")
+  compg.edges <- dummyEdge
+}
+
+visNetwork(Nodes, compg.edges)%>%
+  visNodes(physics = FALSE, font=list(size=20), size = 30) %>%
+  # visIgraphLayout(layout = "layout_in_circle") %>%
+  visIgraphLayout(layout = "layout_nicely") %>%
+  visEdges(smooth = list(enabled = T, type = 'dynamic', physics = FALSE), font = list(size=18, color = network$edge_colours)) %>%
+  visLegend(useGroups = F, addNodes = listLegendNodes, width = 0.2, stepY = 50) %>%
+  visPhysics(solver = "barnesHut", 
+            barnesHut = list(springConstant = 0.04)) %>% #0.002
+ visExport(type = "pdf", name = "Full-Network")
+```
+
