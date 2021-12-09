@@ -19,7 +19,7 @@ Cosmonet(
   nlambda = 50,
   nfolds = 5,
   foldid = NULL,
-  selOptLambda = c("min", "1se"),
+  selOptLambda = min("min", "1se"),
   optCutpoint = c("minPValue", "median", "survCutpoint")
 )
 }

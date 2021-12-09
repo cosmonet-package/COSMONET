@@ -12,7 +12,7 @@ MarginalCoxRanking(x, y)
 \item{y}{response variable, \code{y} should be a two-column matrix with columns named time and status. The latter is a binary variable, with 1 indicating event, and 0 indicating right censored.}
 }
 \value{
-A data frame composed by the ranking of genes (original ndices and gene symbols) that are highly-correlated with the patient survival, the marginal regression coefficients, the coefficients and the relative p.values.
+A data frame composed by the original indices, gene symbols, the marginal regression coefficients, the regression coefficients and the relative p.values.
 }
 \description{
 This function ranks the genes that are highly-correlated with the patient survival according to their corresponding marginal cox utilities. The genes are ordered from the largest to the smallest.
