@@ -50,29 +50,58 @@ ValidationTest <- function(x,y,beta,opt.cutoff){
     
     survp <- ggsurvplot(
       fitTest,                  
-      data = PI,                  
+      data = PI,   
+      palette = c("red", "blue"),
       conf.int = TRUE,           
-      pval = p.value,               
-      risk.table = TRUE,        
+      pval = p.value, 
+      pval.size = 5,
+      risk.table = TRUE,  
       ggtheme = theme_minimal(), 
       legend.title = "",
-      legend.labs = c("High Risk", "Low Risk")
-      )
+      legend.labs = c("High Risk", "Low Risk"),
+      ) 
+    
+    # Changing the font size, style and color
+    survp <- customize_labels(
+      survp,
+      font.x        = c(14, "plain"),
+      font.y        = c(14, "plain"),
+      font.xtickslab = c(14, "plain"),
+      font.ytickslab = c(14, "plain"),
+      font.legend = c(14, "plain"),
+      font.legendlab = c(14, "plain")
+    )
+    
+    # Font for Risk Table
+    survp$table <- customize_labels(
+      survp$table,
+      font.x        = c(14, "plain"),
+      font.y        = c(14, "plain"),
+      font.xtickslab = c(14, "plain"),
+      font.ytickslab = c(14, "plain"),
+      font.legend = c(14, "plain"),
+      font.legendlab = c(14, "plain")
+    )
+    
     # print(survp)
     # print(survp, newpage = FALSE)
     # dev.off()
     
     # Distribution plot of PI 
     PI$id <- 1:dim(PI)[1]
-    PI$groupRisk  <- as.factor(PI$groupRisk)
-    d <- ggpubr:: ggline(PI,"id","PI",color = "groupRisk", palette = c("#FC4E07","#00AFBB")) +
-      ylim(c(min(PI$PI),max(PI$PI))) +
-      scale_color_discrete(labels = c("High Risk", "Low Risk")) + # , name = paste0("Optimal cutoff: ",opt.cutoff)
+    PI$groupRisk[which(PI$groupRisk==1)]  <- "High Risk"
+    PI$groupRisk[which(PI$groupRisk==2)]  <- "Low Risk"
+    PI$groupRisk <- as.factor(PI$groupRisk)
+    d <- ggpubr::ggline(PI,"id","PI", color = "groupRisk", palette = c("red", "blue")) +
+      ylim(c(min(PI$PI),max(PI$PI))) + # , name = paste0("Optimal cutoff: ",opt.cutoff)
       labs(x="Sample", y="Prognostic Index", color = "") 
+    d <- d + theme(axis.text.y = element_text(size = 14), axis.title.y = element_text(size = 14),
+                   axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 14),
+                   legend.text = element_text(size = 14))
     # print(d)
     
-    ggsurv <- ggarrange(survp$plot, survp$table, heights = c(2, 0.7), ncol = 1, nrow = 2)
-    ggsurvComb <- ggarrange(ggsurv, d, labels = c("A", "B"), ncol = 2, nrow = 1)
+    ggsurv <- ggarrange(survp$plot, survp$table, heights = c(2, 0.7), ncol = 1, nrow = 2, font.label=list(color="black",size=14))
+    ggsurvComb <- ggarrange(ggsurv, d, labels = c("A", "B"), ncol = 2, nrow = 1, font.label=list(color="black",size=14))
     # annotate_figure(gg, top = "Testing set")
     print(ggsurvComb)
 
@@ -80,6 +109,42 @@ ValidationTest <- function(x,y,beta,opt.cutoff){
   print("Warning: no splitting!")} # no splitting - only one group
   
   df <- PI[,-grep("id",  colnames(PI))]
+  df$groupRisk <- as.character(df$groupRisk)
+  df$groupRisk[which(df$groupRisk=="High Risk")] <- 1
+  df$groupRisk[which(df$groupRisk=="Low Risk")]  <- 2
   
   return(list(df=df, p.value=p.value))
+}
+
+# Helper function to customize plot labels
+customize_labels <- function (p, font.title = NULL,
+                              font.subtitle = NULL, font.caption = NULL,
+                              font.x = NULL, font.y = NULL, font.xtickslab = NULL, font.ytickslab = NULL, 
+                              font.legend = NULL, font.legendlab = NULL)
+{
+  original.p <- p
+  if(is.ggplot(original.p)) list.plots <- list(original.p)
+  else if(is.list(original.p)) list.plots <- original.p
+  else stop("Can't handle an object of class ", class (original.p))
+  .set_font <- function(font){
+    font <- ggpubr:::.parse_font(font)
+    ggtext::element_markdown (size = font$size, face = font$face, colour = font$color)
+  }
+  for(i in 1:length(list.plots)){
+    p <- list.plots[[i]]
+    if(is.ggplot(p)){
+      if (!is.null(font.title)) p <- p + theme(plot.title = .set_font(font.title))
+      if (!is.null(font.subtitle)) p <- p + theme(plot.subtitle = .set_font(font.subtitle))
+      if (!is.null(font.caption)) p <- p + theme(plot.caption = .set_font(font.caption))
+      if (!is.null(font.x)) p <- p + theme(axis.title.x = .set_font(font.x))
+      if (!is.null(font.y)) p <- p + theme(axis.title.y = .set_font(font.y))
+      if (!is.null(font.xtickslab)) p <- p + theme(axis.text.x = .set_font(font.xtickslab))
+      if (!is.null(font.ytickslab)) p <- p + theme(axis.text.y = .set_font(font.ytickslab))
+      if (!is.null(font.legend)) p <- p + theme(legend.title = .set_font(font.legend))
+      if (!is.null(font.legendlab)) p <- p + theme(legend.text = .set_font(font.legendlab))
+      list.plots[[i]] <- p
+    }
+  }
+  if(is.ggplot(original.p)) list.plots[[1]]
+  else list.plots
 }

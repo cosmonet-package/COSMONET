@@ -49,12 +49,12 @@
 #' Cancer markers selection using network-based Cox regression: A methodological and computational practice. \cr
 #' \emph{Frontiers in physiology, 7, 208.}\cr \cr
 #' @export
-Cosmonet <- function(k,x1,y1,x2,y2,screenVars,family="Cox",penalty="Net",Omega,alpha=0.5,lambda=NULL,nlambda=50,nfolds=5,foldid=NULL,selOptLambda=c("min","1se"),optCutpoint=c("minPValue","median","survCutpoint")){
+Cosmonet <- function(k,x1,y1,x2,y2,screenVars,family="Cox",penalty="Net",Omega,alpha=0.5,lambda=NULL,nlambda=50,nfolds=5,foldid=NULL,selOptLambda=min("min","1se"),optCutpoint=c("minPValue","median","survCutpoint")){
   
   # Training phase
-  fitTrain <- CosmonetTraining(k,x1,y1,screenVars,family="Cox",penalty="Net",Omega,alpha,lambda,nlambda,folds,foldid,selOptLambda,optCutpoint)
+  fitTrain <- CosmonetTraining(k,x1,y1,screenVars,family,penalty,Omega,alpha,lambda,nlambda,nfolds,foldid,selOptLambda,optCutpoint)
   
-  # Regression coefficients and optimal cutoff computed  on training set
+  # Regression coefficients and optimal cutoff computed on training set
   beta <- fitTrain$beta
   opt.cutoff <- fitTrain$opt.cutoff
     

@@ -114,7 +114,7 @@ OptimLambda <- function(k,x,y,Omega=Omega,alpha=alpha,lambda=NULL,nlambda=50,nfo
   # Plot Cross-validation curve
   x <- log(as.matrix(res$lambda))
   y <- as.matrix(res$mean)
-  plot(x,y,"p",xlab = "Log(lambda)",ylab ="cvm",col = "red", pch = 20)
+  plot(x,y,"p",xlab = "Log(lambda)",ylab ="cvm",col = "red", pch = 20, cex.lab=1.5, cex.axis=1.5, cex.main=1.5, cex.sub=1.5)
   abline(v=log(opt.lambda), col="black",lwd=3, lty=2)
   
   return(list(opt.lambda=opt.lambda))

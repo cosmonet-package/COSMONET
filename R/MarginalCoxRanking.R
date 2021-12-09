@@ -5,7 +5,7 @@
 #' @param x input matrix \code{nxp}.
 #' @param y response variable, \code{y} should be a two-column matrix with columns named time and status. The latter is a binary variable, with 1 indicating event, and 0 indicating right censored.
 #'
-#' @return A data frame composed by the ranking of genes (original ndices and gene symbols) that are highly-correlated with the patient survival, the marginal regression coefficients, the coefficients and the relative p.values.
+#' @return A data frame composed by the original indices, gene symbols, the marginal regression coefficients, the regression coefficients and the relative p.values.
 #' @references 
 #' Fan, J., Feng, Y., & Wu, Y. (2010). 
 #' High-dimensional variable selection for Cox’s proportional hazards model.\cr

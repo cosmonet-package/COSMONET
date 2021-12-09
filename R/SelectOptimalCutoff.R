@@ -90,26 +90,58 @@ SelectOptimalCutoff <- function(x,y,beta,optCutpoint=c("minPValue","median","sur
   
     survp <- ggsurvplot(
       fitTrain,                  
-      data = df,                  
+      data = df, 
+      palette = c("red", "blue"),
       conf.int = TRUE,  
-      pval = TRUE,              
+      pval = TRUE,
+      pval.size = 5,
       risk.table = TRUE,  
       ggtheme = theme_minimal(),  
       legend.title = paste0("Cutoff: ", signif(opt.cutoff,4)),  
-      legend.labs = c("High Risk", "Low Risk"),
+      legend.labs = c("High Risk", "Low Risk")
+    ) 
+    
+    # Changing the font size, style and color
+    survp <- customize_labels(
+      survp,
+      font.x        = c(14, "plain"),
+      font.y        = c(14, "plain"),
+      font.xtickslab = c(14, "plain"),
+      font.ytickslab = c(14, "plain"),
+      font.legend = c(14, "plain"),
+      font.legendlab = c(14, "plain")
     )
     
-    ggsurv <- ggarrange(survp$plot, survp$table, heights = c(2, 0.7), ncol = 1, nrow = 2)
-    df$id <- 1:dim(PI)[1]
-    df$groupRisk  <- as.factor(df$groupRisk)
-    d <- ggline(df,"id","PI",color = "groupRisk", palette = c("#FC4E07","#00AFBB")) +
-      ylim(c(min(df$PI),max(df$PI))) +
-      scale_color_discrete(labels = c("High Risk", "Low Risk")) + 
-      labs(x="Sample", y="Prognostic Index", color = "")
+    # Font for Risk Table
+    survp$table <- customize_labels(
+      survp$table,
+      font.x        = c(14, "plain"),
+      font.y        = c(14, "plain"),
+      font.xtickslab = c(14, "plain"),
+      font.ytickslab = c(14, "plain"),
+      font.legend = c(14, "plain"),
+      font.legendlab = c(14, "plain")
+    )
     
-    ggsurvComb <- ggarrange(ggsurv, d, labels = c("A", "B"), ncol = 2, nrow = 1)
+    ggsurv <- ggarrange(survp$plot, survp$table, heights = c(2, 0.7), ncol = 1, nrow = 2, font.label=list(color="black",size=14))
+    df$id <- 1:dim(PI)[1]
+    df$groupRisk[which(df$groupRisk==1)]  <- "High Risk"
+    df$groupRisk[which(df$groupRisk==2)]  <- "Low Risk"
+    df$groupRisk  <- as.factor(df$groupRisk)
+    d <- ggline(df,"id","PI",color = "groupRisk", palette = c("red", "blue")) +
+      ylim(c(min(df$PI),max(df$PI))) +
+      labs(x="Sample", y="Prognostic Index", color = "", font.legend =  list(size = 14, color = "black"))
+    d <- d + theme(axis.text.y = element_text(size = 14), axis.title.y = element_text(size = 14),
+                   axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 14),
+                   legend.text = element_text(size = 14))
+    
+    ggsurvComb <- ggarrange(ggsurv, d, labels = c("A", "B"), ncol = 2, nrow = 1, font.label=list(color="black",size=14))
     # annotate_figure(gg, top = "Training set")
     print(ggsurvComb)
+    
+    df$groupRisk <- as.character(df$groupRisk)
+    df$groupRisk[which(df$groupRisk=="High Risk")] <- 1
+    df$groupRisk[which(df$groupRisk=="Low Risk")]  <- 2
   }
   
   return(list(df=df,summary=summary,opt.cutoff=opt.cutoff))
@@ -158,29 +190,58 @@ quantileCutoff <- function(PI, probs, perc, plot){
     # Keplan-Meier curve
     survp <- ggsurvplot(
       fitTrain,                  
-      data = PI,                  
+      data = PI,   
+      palette = c("red", "blue"),             
       conf.int = TRUE,  
-      pval = p[j],              
+      pval = p[j],  
+      pval.size = 5,
       risk.table = TRUE,  
       ggtheme = theme_minimal(),  
       legend.title = paste0("Cutoff: ", perc[j]),  # round(q[j],4)
-      legend.labs = c("High Risk", "Low Risk"),
+      legend.labs = c("High Risk", "Low Risk")
+    ) 
+    
+    # Changing the font size, style and color
+    survp <- customize_labels(
+      survp,
+      font.x        = c(14, "plain"),
+      font.y        = c(14, "plain"),
+      font.xtickslab = c(14, "plain"),
+      font.ytickslab = c(14, "plain"),
+      font.legend = c(14, "plain"),
+      font.legendlab = c(14, "plain")
     )
+    
+    # Font for Risk Table
+    survp$table <- customize_labels(
+      survp$table,
+      font.x        = c(14, "plain"),
+      font.y        = c(14, "plain"),
+      font.xtickslab = c(14, "plain"),
+      font.ytickslab = c(14, "plain"),
+      font.legend = c(14, "plain"),
+      font.legendlab = c(14, "plain")
+    )
+
     # par(mfrow = c(4, 3)) 
-    ggsurv <- ggarrange(survp$plot, survp$table, heights = c(2, 0.7), ncol = 1, nrow = 2)
+    ggsurv <- ggarrange(survp$plot, survp$table, heights = c(2, 0.7), ncol = 1, nrow = 2, font.label=list(color="black",size=14))
     plots.list[[j]] <- survp$plot
     # print(ggsurv)
     
     # Distribution plot of PI 
     PI$id <- 1:dim(PI)[1]
+    PI$groupRisk[which(PI$groupRisk==1)]  <- "High Risk"
+    PI$groupRisk[which(PI$groupRisk==2)]  <- "Low Risk"
     PI$groupRisk  <- as.factor(PI$groupRisk)
-    d <- ggline(PI,"id","PI",color = "groupRisk", palette = c("#FC4E07","#00AFBB")) +
-      ylim(c(min(PI$PI),max(PI$PI))) +
-      scale_color_discrete(labels = c("High Risk", "Low Risk")) + #, name = paste0("Cutoff: ",round(q[j],6))) +
+    d <- ggline(PI,"id","PI",color = "groupRisk", palette = c("red", "blue")) +
+      ylim(c(min(PI$PI),max(PI$PI))) + #, name = paste0("Cutoff: ",round(q[j],6))) +
       labs(x="Sample", y="Prognostic Index", color = "")
+    d <- d + theme(axis.text.y = element_text(size = 14), axis.title.y = element_text(size = 14),
+                   axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 14),
+                   legend.text = element_text(size = 14))
     # print(d)
     
-    ggsurvComb <- ggarrange(ggsurv, d, labels = c("A", "B"), ncol = 2, nrow = 1)
+    ggsurvComb <- ggarrange(ggsurv, d, labels = c("A", "B"), ncol = 2, nrow = 1, font.label=list(color="black",size=14))
     # annotate_figure(gg, top = "Training set")
     print(ggsurvComb)
     risk.matrix <- cbind(risk.matrix, groupRisk)
@@ -216,4 +277,37 @@ quantileCutoff <- function(PI, probs, perc, plot){
   # print(summary)
   
   return(list(df=df,summary=summary))
+}
+
+# Helper function to customize plot labels
+customize_labels <- function (p, font.title = NULL,
+                              font.subtitle = NULL, font.caption = NULL,
+                              font.x = NULL, font.y = NULL, font.xtickslab = NULL, font.ytickslab = NULL, 
+                              font.legend = NULL, font.legendlab = NULL)
+{
+  original.p <- p
+  if(is.ggplot(original.p)) list.plots <- list(original.p)
+  else if(is.list(original.p)) list.plots <- original.p
+  else stop("Can't handle an object of class ", class (original.p))
+  .set_font <- function(font){
+    font <- ggpubr:::.parse_font(font)
+    ggtext::element_markdown (size = font$size, face = font$face, colour = font$color)
+  }
+  for(i in 1:length(list.plots)){
+    p <- list.plots[[i]]
+    if(is.ggplot(p)){
+      if (!is.null(font.title)) p <- p + theme(plot.title = .set_font(font.title))
+      if (!is.null(font.subtitle)) p <- p + theme(plot.subtitle = .set_font(font.subtitle))
+      if (!is.null(font.caption)) p <- p + theme(plot.caption = .set_font(font.caption))
+      if (!is.null(font.x)) p <- p + theme(axis.title.x = .set_font(font.x))
+      if (!is.null(font.y)) p <- p + theme(axis.title.y = .set_font(font.y))
+      if (!is.null(font.xtickslab)) p <- p + theme(axis.text.x = .set_font(font.xtickslab))
+      if (!is.null(font.ytickslab)) p <- p + theme(axis.text.y = .set_font(font.ytickslab))
+      if (!is.null(font.legend)) p <- p + theme(legend.title = .set_font(font.legend))
+      if (!is.null(font.legendlab)) p <- p + theme(legend.text = .set_font(font.legendlab))
+      list.plots[[i]] <- p
+    }
+  }
+  if(is.ggplot(original.p)) list.plots[[1]]
+  else list.plots
 }

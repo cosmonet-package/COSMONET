@@ -11,9 +11,17 @@ VennPlot <- function(groupRisk1, groupRisk2, groupRisk3, risk){
   library(VennDiagram)
   # Display Venn Diagram
   venn <- display_venn(
-    x = list(groupRisk1, groupRisk2, groupRisk3),
-    category.names = c(paste0(risk,"-BMD") , paste0(risk,"-DAD") , paste0(risk,"-BMD+DAD"))
-  )
+    x = list(groupRisk1, groupRisk2, groupRisk3), 
+            category.names = c(paste0(risk,"-BMD") , paste0(risk,"-DAD") , paste0(risk,"-BMD+DAD")),
+                       # Numbers
+                       cex = 1.5,
+                       # Set names
+                       cat.cex = 1.5,
+                       cat.default.pos = "outer",
+                       # Font
+                       fontfamily = "sans",
+                       cat.fontfamily = "sans"
+    )
   print(venn)
 }
 
