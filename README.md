@@ -13,7 +13,7 @@ To install COSMONET via GitHub enter the following commands:
 
 ````
 install.packages("devtools")
-devtools::install_github("antoiulia/COSMONET", repos=BiocManager::repositories())
+devtools::install_github("cosmonet-package/COSMONET", repos=BiocManager::repositories())
 ````
 
 Note. Execute the following steps:
